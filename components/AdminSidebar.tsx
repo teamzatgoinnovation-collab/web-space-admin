@@ -18,6 +18,7 @@ import {
   ShieldCheck,
   LogOut,
   Settings as SettingsIcon,
+  Terminal,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -55,6 +56,7 @@ const GROUPS: NavGroup[] = [
     title: "Platform",
     items: [
       { href: "/infrastructure", label: "Infrastructure", icon: Network },
+      { href: "/bench", label: "Bench Manager", icon: Terminal },
       { href: "/security", label: "Security", icon: ShieldCheck },
       { href: "/settings", label: "Settings", icon: SettingsIcon },
     ],

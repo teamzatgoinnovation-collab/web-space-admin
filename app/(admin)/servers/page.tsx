@@ -3,6 +3,7 @@ import { withAuth } from "@/lib/require-sid";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Progress } from "@/components/ui/progress";
 
 export const dynamic = "force-dynamic";
 
@@ -32,13 +33,39 @@ type Server = {
 };
 type Infra = { regions: Region[]; clusters: Cluster[]; servers: Server[]; alerts_open: number };
 
+type StoragePool = {
+  name: string;
+  pool_name: string;
+  title: string;
+  server: string | null;
+  status: string;
+  capacity_gb: number;
+  allocated_gb: number;
+  used_gb: number;
+  available_gb: number;
+  reserved_gb: number;
+  disk_gb: number;
+};
+
 function pct(used: number, total: number) {
   if (!total) return "—";
   return `${Math.round((used / total) * 100)}%`;
 }
 
+const POOL_STATUS_VARIANT: Record<string, "default" | "destructive" | "secondary"> = {
+  Active: "default",
+  Full: "destructive",
+  Offline: "secondary",
+};
+
 export default async function ServersPage() {
-  const data = await withAuth((sid) => callMethod<Infra>("space_cloud.api.v4.space.infra_status", undefined, sid));
+  const { data, pools } = await withAuth(async (sid) => {
+    const [data, pools] = await Promise.all([
+      callMethod<Infra>("space_cloud.api.v4.space.infra_status", undefined, sid),
+      callMethod<StoragePool[]>("space_cloud.api.v4.space.storage_pool_status", undefined, sid),
+    ]);
+    return { data, pools };
+  });
 
   return (
     <div>
@@ -85,6 +112,59 @@ export default async function ServersPage() {
                 <TableRow>
                   <TableCell colSpan={6} className="py-6 text-center text-muted-foreground">
                     No servers registered.
+                  </TableCell>
+                </TableRow>
+              ) : null}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+
+      <Card className="mb-8">
+        <CardHeader>
+          <CardTitle className="text-lg">Hosting Pools</CardTitle>
+        </CardHeader>
+        <CardContent className="overflow-x-auto p-0">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Pool</TableHead>
+                <TableHead>Server</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Allocated / Capacity</TableHead>
+                <TableHead>Used (actual)</TableHead>
+                <TableHead>Available</TableHead>
+                <TableHead>Reserved</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {pools.map((p) => {
+                const allocPct = p.capacity_gb ? Math.min(100, Math.round((p.allocated_gb / p.capacity_gb) * 100)) : 0;
+                return (
+                  <TableRow key={p.name}>
+                    <TableCell className="font-medium text-foreground">{p.title || p.pool_name}</TableCell>
+                    <TableCell className="text-muted-foreground">{p.server || "—"}</TableCell>
+                    <TableCell>
+                      <Badge variant={POOL_STATUS_VARIANT[p.status] || "secondary"}>{p.status}</Badge>
+                    </TableCell>
+                    <TableCell className="min-w-40 text-muted-foreground">
+                      <div className="mb-1">
+                        {p.allocated_gb} / {p.capacity_gb} GB ({allocPct}%)
+                      </div>
+                      <Progress value={allocPct} />
+                    </TableCell>
+                    <TableCell className="text-muted-foreground">{p.used_gb} GB</TableCell>
+                    <TableCell className="text-muted-foreground">{p.available_gb} GB</TableCell>
+                    <TableCell className="text-muted-foreground">
+                      {p.reserved_gb} GB {p.disk_gb ? `of ${p.disk_gb} GB disk` : ""}
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+              {!pools.length ? (
+                <TableRow>
+                  <TableCell colSpan={7} className="py-6 text-center text-muted-foreground">
+                    No hosting pools configured yet.
                   </TableCell>
                 </TableRow>
               ) : null}
