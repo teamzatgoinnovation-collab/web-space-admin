@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { getList } from "@/lib/frappe-admin";
+import { callMethod, getList } from "@/lib/frappe-admin";
 import { withAuth } from "@/lib/require-sid";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
@@ -19,25 +19,38 @@ type SiteRow = {
   storage_used_mb: number;
 };
 
+type QuotaSummaryRow = { site: string; domain: string; quota_percent: number | null; status: string };
+
 const STATUS_VARIANT: Record<string, "default" | "destructive" | "secondary"> = {
   Active: "default",
   Failed: "destructive",
   Suspended: "secondary",
 };
 
+const QUOTA_VARIANT: Record<string, "default" | "destructive" | "secondary"> = {
+  Healthy: "default",
+  Warning: "secondary",
+  Critical: "destructive",
+};
+
 export default async function SitesPage() {
-  const sites = await withAuth((sid) =>
-    getList<SiteRow>(
-      "Space Site",
-      {
-        fields: ["name", "site_name", "domain", "status", "ssl_status", "customer", "server", "plan", "storage_used_mb"],
-        filters: { status: ["!=", "Deleted"] },
-        order_by: "modified desc",
-        limit_page_length: 200,
-      },
-      sid,
-    ),
-  );
+  const { sites, quotaBySite } = await withAuth(async (sid) => {
+    const [sites, quotaRows] = await Promise.all([
+      getList<SiteRow>(
+        "Space Site",
+        {
+          fields: ["name", "site_name", "domain", "status", "ssl_status", "customer", "server", "plan", "storage_used_mb"],
+          filters: { status: ["!=", "Deleted"] },
+          order_by: "modified desc",
+          limit_page_length: 200,
+        },
+        sid,
+      ),
+      callMethod<QuotaSummaryRow[]>("space_cloud.api.v4.space.fleet_quota_summary", undefined, sid),
+    ]);
+    const quotaBySite = new Map(quotaRows.map((q) => [q.site, q]));
+    return { sites, quotaBySite };
+  });
 
   return (
     <div>
@@ -56,29 +69,40 @@ export default async function SitesPage() {
                 <TableHead>Server</TableHead>
                 <TableHead>Plan</TableHead>
                 <TableHead>Storage</TableHead>
+                <TableHead>Quota %</TableHead>
+                <TableHead>Quota Status</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {sites.map((s) => (
-                <TableRow key={s.name}>
-                  <TableCell className="font-medium">
-                    <Link href={`/sites/${encodeURIComponent(s.name)}`} className="text-foreground hover:text-primary hover:underline">
-                      {s.domain || s.site_name}
-                    </Link>
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant={STATUS_VARIANT[s.status] || "secondary"}>{s.status}</Badge>
-                  </TableCell>
-                  <TableCell className="text-muted-foreground">{s.ssl_status || "—"}</TableCell>
-                  <TableCell className="text-muted-foreground">{s.customer || "—"}</TableCell>
-                  <TableCell className="text-muted-foreground">{s.server || "—"}</TableCell>
-                  <TableCell className="text-muted-foreground">{s.plan || "—"}</TableCell>
-                  <TableCell className="text-muted-foreground">{s.storage_used_mb ?? 0} MB</TableCell>
-                </TableRow>
-              ))}
+              {sites.map((s) => {
+                const q = quotaBySite.get(s.name);
+                return (
+                  <TableRow key={s.name}>
+                    <TableCell className="font-medium">
+                      <Link href={`/sites/${encodeURIComponent(s.name)}`} className="text-foreground hover:text-primary hover:underline">
+                        {s.domain || s.site_name}
+                      </Link>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant={STATUS_VARIANT[s.status] || "secondary"}>{s.status}</Badge>
+                    </TableCell>
+                    <TableCell className="text-muted-foreground">{s.ssl_status || "—"}</TableCell>
+                    <TableCell className="text-muted-foreground">{s.customer || "—"}</TableCell>
+                    <TableCell className="text-muted-foreground">{s.server || "—"}</TableCell>
+                    <TableCell className="text-muted-foreground">{s.plan || "—"}</TableCell>
+                    <TableCell className="text-muted-foreground">{s.storage_used_mb ?? 0} MB</TableCell>
+                    <TableCell className="text-muted-foreground">
+                      {q?.quota_percent != null ? `${q.quota_percent}%` : "—"}
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant={QUOTA_VARIANT[q?.status || "Healthy"] || "secondary"}>{q?.status || "Healthy"}</Badge>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
               {!sites.length ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="py-6 text-center text-muted-foreground">
+                  <TableCell colSpan={9} className="py-6 text-center text-muted-foreground">
                     No sites yet.
                   </TableCell>
                 </TableRow>
