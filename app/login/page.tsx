@@ -53,15 +53,16 @@ function LoginForm() {
         <CardContent>
           <form onSubmit={submit} className="flex flex-col gap-4">
             <div className="grid gap-1.5">
-              <Label htmlFor="usr">Email</Label>
+              <Label htmlFor="usr">Username or email</Label>
               <Input
                 id="usr"
-                type="email"
+                type="text"
+                autoComplete="username"
                 required
                 autoFocus
                 value={usr}
                 onChange={(e) => setUsr(e.target.value)}
-                placeholder="you@zatgo.online"
+                placeholder="Administrator or you@zatgo.online"
               />
             </div>
             <div className="grid gap-1.5">
