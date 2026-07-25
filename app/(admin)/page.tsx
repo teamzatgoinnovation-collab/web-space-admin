@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { callMethod } from "@/lib/frappe-admin";
 import { withAuth } from "@/lib/require-sid";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -22,9 +23,19 @@ type DashboardSummary = {
   server_health: { name: string; health: string; status: string }[];
 };
 
-function Stat({ label, value, tone }: { label: string; value: string | number; tone?: "red" | "green" }) {
-  return (
-    <Card>
+function Stat({
+  label,
+  value,
+  tone,
+  href,
+}: {
+  label: string;
+  value: string | number;
+  tone?: "red" | "green";
+  href?: string;
+}) {
+  const card = (
+    <Card className={cn(href && "transition-colors hover:border-primary/50 hover:bg-secondary/40")}>
       <CardContent className="p-4">
         <p className="text-xs text-muted-foreground">{label}</p>
         <p
@@ -40,6 +51,13 @@ function Stat({ label, value, tone }: { label: string; value: string | number; t
       </CardContent>
     </Card>
   );
+  return href ? (
+    <Link href={href} className="block">
+      {card}
+    </Link>
+  ) : (
+    card
+  );
 }
 
 export default async function DashboardPage() {
@@ -54,20 +72,26 @@ export default async function DashboardPage() {
 
       <div className="mb-8 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
         <Stat label="Customers" value={data.customers} />
-        <Stat label="Servers" value={data.servers} />
-        <Stat label="Sites (active)" value={`${data.active_sites} / ${data.sites}`} />
-        <Stat label="Subscriptions" value={data.subscriptions} />
-        <Stat label="Running jobs" value={data.running_jobs} />
-        <Stat label="Failed jobs" value={data.failed_jobs} tone={data.failed_jobs > 0 ? "red" : undefined} />
-        <Stat label="Trials" value={data.trials} />
-        <Stat label="Expiring plans (14d)" value={data.expiring_plans} tone={data.expiring_plans > 0 ? "red" : undefined} />
-        <Stat label="Revenue" value={`$${data.revenue.toFixed(2)}`} />
-        <Stat label="Avg CPU" value={`${data.cpu_usage}%`} />
-        <Stat label="Disk used" value={`${(data.disk_usage / 1024).toFixed(1)} GB`} />
+        <Stat label="Servers" value={data.servers} href="/servers" />
+        <Stat label="Sites (active)" value={`${data.active_sites} / ${data.sites}`} href="/sites" />
+        <Stat label="Subscriptions" value={data.subscriptions} href="/billing" />
+        <Stat label="Running jobs" value={data.running_jobs} href="/jobs" />
+        <Stat label="Failed jobs" value={data.failed_jobs} tone={data.failed_jobs > 0 ? "red" : undefined} href="/jobs" />
+        <Stat label="Trials" value={data.trials} href="/billing" />
+        <Stat
+          label="Expiring plans (14d)"
+          value={data.expiring_plans}
+          tone={data.expiring_plans > 0 ? "red" : undefined}
+          href="/billing"
+        />
+        <Stat label="Revenue" value={`$${data.revenue.toFixed(2)}`} href="/billing" />
+        <Stat label="Avg CPU" value={`${data.cpu_usage}%`} href="/servers" />
+        <Stat label="Disk used" value={`${(data.disk_usage / 1024).toFixed(1)} GB`} href="/servers" />
         <Stat
           label="Backups"
           value={`${data.backup_status.succeeded} ok / ${data.backup_status.failed} failed`}
           tone={data.backup_status.failed > 0 ? "red" : "green"}
+          href="/backups"
         />
       </div>
 
