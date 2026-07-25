@@ -87,7 +87,15 @@ export default async function SitesPage() {
                       <Badge variant={STATUS_VARIANT[s.status] || "secondary"}>{s.status}</Badge>
                     </TableCell>
                     <TableCell className="text-muted-foreground">{s.ssl_status || "—"}</TableCell>
-                    <TableCell className="text-muted-foreground">{s.customer || "—"}</TableCell>
+                    <TableCell className="text-muted-foreground">
+                      {s.customer ? (
+                        <Link href={`/customers/${encodeURIComponent(s.customer)}`} className="hover:text-primary hover:underline">
+                          {s.customer}
+                        </Link>
+                      ) : (
+                        "—"
+                      )}
+                    </TableCell>
                     <TableCell className="text-muted-foreground">{s.server || "—"}</TableCell>
                     <TableCell className="text-muted-foreground">{s.plan || "—"}</TableCell>
                     <TableCell className="text-muted-foreground">{s.storage_used_mb ?? 0} MB</TableCell>

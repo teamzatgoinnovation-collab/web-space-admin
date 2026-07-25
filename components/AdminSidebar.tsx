@@ -7,6 +7,7 @@ import {
   Globe,
   Server,
   Activity,
+  Users,
   ListChecks,
   DatabaseBackup,
   Link2,
@@ -46,6 +47,7 @@ const GROUPS: NavGroup[] = [
   {
     title: "Customer",
     items: [
+      { href: "/customers", label: "Customers", icon: Users },
       { href: "/billing", label: "Billing", icon: Receipt },
       { href: "/marketplace", label: "Marketplace", icon: Store },
       { href: "/support", label: "Support", icon: LifeBuoy },
