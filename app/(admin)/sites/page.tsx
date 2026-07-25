@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { getList } from "@/lib/frappe-admin";
 import { withAuth } from "@/lib/require-sid";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -60,7 +61,11 @@ export default async function SitesPage() {
             <TableBody>
               {sites.map((s) => (
                 <TableRow key={s.name}>
-                  <TableCell className="font-medium text-foreground">{s.domain || s.site_name}</TableCell>
+                  <TableCell className="font-medium">
+                    <Link href={`/sites/${encodeURIComponent(s.name)}`} className="text-foreground hover:text-primary hover:underline">
+                      {s.domain || s.site_name}
+                    </Link>
+                  </TableCell>
                   <TableCell>
                     <Badge variant={STATUS_VARIANT[s.status] || "secondary"}>{s.status}</Badge>
                   </TableCell>
