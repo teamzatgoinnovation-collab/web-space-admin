@@ -1,10 +1,12 @@
-import { AdminNav } from "@/components/AdminNav";
+import { AdminSidebar } from "@/components/AdminSidebar";
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   return (
     <>
-      <AdminNav />
-      <main className="mx-auto max-w-6xl px-4 pt-24 pb-8 sm:px-6">{children}</main>
+      <AdminSidebar />
+      <main className="px-4 py-8 sm:ml-60 sm:px-8">
+        <div className="mx-auto max-w-6xl">{children}</div>
+      </main>
     </>
   );
 }

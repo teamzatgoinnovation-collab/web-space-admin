@@ -3,10 +3,11 @@ import { withAuth } from "@/lib/require-sid";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
+import { AcknowledgeButton, HeartbeatButton } from "./monitoring-actions";
 
 export const dynamic = "force-dynamic";
 
-type Alert = {
+export type Alert = {
   name: string;
   title: string;
   severity: string;
@@ -33,8 +34,13 @@ export default async function MonitoringPage() {
 
   return (
     <div>
-      <h1 className="mb-1 text-2xl font-semibold text-foreground">Monitoring</h1>
-      <p className="mb-6 text-sm text-muted-foreground">{alerts.length} open alert(s).</p>
+      <div className="mb-6 flex items-start justify-between gap-3">
+        <div>
+          <h1 className="mb-1 text-2xl font-semibold text-foreground">Monitoring</h1>
+          <p className="text-sm text-muted-foreground">{alerts.length} open alert(s).</p>
+        </div>
+        <HeartbeatButton />
+      </div>
 
       <Card>
         <CardContent className="overflow-x-auto p-0">
@@ -46,6 +52,7 @@ export default async function MonitoringPage() {
                 <TableHead>Metric</TableHead>
                 <TableHead>Server / Cluster</TableHead>
                 <TableHead>Opened</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -60,11 +67,14 @@ export default async function MonitoringPage() {
                   </TableCell>
                   <TableCell className="text-muted-foreground">{a.server || a.cluster || "—"}</TableCell>
                   <TableCell className="text-muted-foreground">{a.opened_at}</TableCell>
+                  <TableCell className="text-right">
+                    <AcknowledgeButton name={a.name} />
+                  </TableCell>
                 </TableRow>
               ))}
               {!alerts.length ? (
                 <TableRow>
-                  <TableCell colSpan={5} className="py-6 text-center text-muted-foreground">
+                  <TableCell colSpan={6} className="py-6 text-center text-muted-foreground">
                     No open alerts. 🎉
                   </TableCell>
                 </TableRow>
