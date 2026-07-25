@@ -4,7 +4,10 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useAction } from "@/lib/use-action";
+
+export type SiteOption = { name: string; label: string };
 
 export function GetAppForm() {
   const { run, busyKey, error } = useAction();
@@ -83,96 +86,79 @@ export function ListBenchAppsForm() {
   );
 }
 
-export function InstallAppForm() {
+/** Pick one site, then run install/uninstall/migrate against it — a single
+ * selector shared by all three actions instead of retyping the site per form. */
+export function SiteAppActions({ sites }: { sites: SiteOption[] }) {
   const { run, busyKey, error } = useAction();
-  const [site, setSite] = useState("");
+  const [site, setSite] = useState(sites[0]?.name || "");
   const [appPackage, setAppPackage] = useState("");
   const [repo, setRepo] = useState("");
   const [branch, setBranch] = useState("main");
 
   return (
-    <div className="flex flex-wrap items-end gap-3">
-      <div className="min-w-48 flex-1">
+    <div className="flex flex-col gap-4">
+      <div className="max-w-xs">
         <label className="mb-1.5 block text-xs text-muted-foreground">Site</label>
-        <Input value={site} onChange={(e) => setSite(e.target.value)} placeholder="acme.zatgo.online" />
+        <Select value={site} onValueChange={(v) => setSite(v || "")}>
+          <SelectTrigger className="w-full">
+            <SelectValue placeholder="Select a site" />
+          </SelectTrigger>
+          <SelectContent>
+            {sites.map((s) => (
+              <SelectItem key={s.name} value={s.name}>
+                {s.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        {!sites.length ? <p className="mt-1 text-xs text-muted-foreground">No sites yet.</p> : null}
       </div>
-      <div className="min-w-40 flex-1">
-        <label className="mb-1.5 block text-xs text-muted-foreground">App package</label>
-        <Input value={appPackage} onChange={(e) => setAppPackage(e.target.value)} placeholder="hrms" />
-      </div>
-      <div className="min-w-56 flex-[2]">
-        <label className="mb-1.5 block text-xs text-muted-foreground">Repository URL (optional)</label>
-        <Input value={repo} onChange={(e) => setRepo(e.target.value)} placeholder="skip if already on bench" />
-      </div>
-      <div className="w-28">
-        <label className="mb-1.5 block text-xs text-muted-foreground">Branch</label>
-        <Input value={branch} onChange={(e) => setBranch(e.target.value)} placeholder="main" />
-      </div>
-      <Button
-        disabled={!site.trim() || !appPackage.trim() || busyKey === "install"}
-        onClick={() =>
-          run("install", "space_cloud.api.v4.space.bench_install_app", {
-            site: site.trim(),
-            app_package: appPackage.trim(),
-            repo: repo.trim() || null,
-            branch: branch.trim() || "main",
-          })
-        }
-      >
-        {busyKey === "install" ? "Queuing…" : "Install"}
-      </Button>
-      {error && <p className="w-full text-sm text-destructive">{error}</p>}
-    </div>
-  );
-}
 
-export function UninstallAppForm() {
-  const { run, busyKey, error } = useAction();
-  const [site, setSite] = useState("");
-  const [appPackage, setAppPackage] = useState("");
-
-  return (
-    <div className="flex flex-wrap items-end gap-3">
-      <div className="min-w-48 flex-1">
-        <label className="mb-1.5 block text-xs text-muted-foreground">Site</label>
-        <Input value={site} onChange={(e) => setSite(e.target.value)} placeholder="acme.zatgo.online" />
+      <div className="flex flex-wrap items-end gap-3 border-t border-border pt-4">
+        <div className="min-w-40 flex-1">
+          <label className="mb-1.5 block text-xs text-muted-foreground">App package</label>
+          <Input value={appPackage} onChange={(e) => setAppPackage(e.target.value)} placeholder="hrms" />
+        </div>
+        <div className="min-w-56 flex-[2]">
+          <label className="mb-1.5 block text-xs text-muted-foreground">Repository URL (optional, install only)</label>
+          <Input value={repo} onChange={(e) => setRepo(e.target.value)} placeholder="skip if already on bench" />
+        </div>
+        <div className="w-28">
+          <label className="mb-1.5 block text-xs text-muted-foreground">Branch</label>
+          <Input value={branch} onChange={(e) => setBranch(e.target.value)} placeholder="main" />
+        </div>
+        <Button
+          disabled={!site || !appPackage.trim() || busyKey === "install"}
+          onClick={() =>
+            run("install", "space_cloud.api.v4.space.bench_install_app", {
+              site,
+              app_package: appPackage.trim(),
+              repo: repo.trim() || null,
+              branch: branch.trim() || "main",
+            })
+          }
+        >
+          {busyKey === "install" ? "Queuing…" : "Install"}
+        </Button>
+        <Button
+          variant="destructive"
+          disabled={!site || !appPackage.trim() || busyKey === "uninstall"}
+          onClick={() => {
+            if (!window.confirm(`Uninstall ${appPackage.trim()} from ${site}?`)) return;
+            run("uninstall", "space_cloud.api.v4.space.bench_uninstall_app", { site, app_package: appPackage.trim() });
+          }}
+        >
+          {busyKey === "uninstall" ? "Queuing…" : "Uninstall"}
+        </Button>
+        <Button
+          variant="secondary"
+          disabled={!site || busyKey === "migrate"}
+          onClick={() => run("migrate", "space_cloud.api.v4.space.bench_migrate_site", { site })}
+        >
+          {busyKey === "migrate" ? "Queuing…" : "bench migrate"}
+        </Button>
       </div>
-      <div className="min-w-40 flex-1">
-        <label className="mb-1.5 block text-xs text-muted-foreground">App package</label>
-        <Input value={appPackage} onChange={(e) => setAppPackage(e.target.value)} placeholder="hrms" />
-      </div>
-      <Button
-        variant="destructive"
-        disabled={!site.trim() || !appPackage.trim() || busyKey === "uninstall"}
-        onClick={() => {
-          if (!window.confirm(`Uninstall ${appPackage.trim()} from ${site.trim()}?`)) return;
-          run("uninstall", "space_cloud.api.v4.space.bench_uninstall_app", { site: site.trim(), app_package: appPackage.trim() });
-        }}
-      >
-        {busyKey === "uninstall" ? "Queuing…" : "Uninstall"}
-      </Button>
-      {error && <p className="w-full text-sm text-destructive">{error}</p>}
-    </div>
-  );
-}
-
-export function MigrateSiteForm() {
-  const { run, busyKey, error } = useAction();
-  const [site, setSite] = useState("");
-
-  return (
-    <div className="flex flex-wrap items-end gap-3">
-      <div className="min-w-48 flex-1">
-        <label className="mb-1.5 block text-xs text-muted-foreground">Site</label>
-        <Input value={site} onChange={(e) => setSite(e.target.value)} placeholder="acme.zatgo.online" />
-      </div>
-      <Button
-        disabled={!site.trim() || busyKey === "migrate"}
-        onClick={() => run("migrate", "space_cloud.api.v4.space.bench_migrate_site", { site: site.trim() })}
-      >
-        {busyKey === "migrate" ? "Queuing…" : "bench migrate"}
-      </Button>
-      {error && <p className="w-full text-sm text-destructive">{error}</p>}
+      {error && <p className="text-sm text-destructive">{error}</p>}
     </div>
   );
 }

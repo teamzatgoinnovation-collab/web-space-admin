@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
-import { callMethod } from "@/lib/frappe-admin";
+import { callMethod, getList } from "@/lib/frappe-admin";
 import { withAuth } from "@/lib/require-sid";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -8,6 +8,7 @@ import { Progress } from "@/components/ui/progress";
 import { UsageGauge } from "@/components/UsageGauge";
 import { MetricsTrend, type MetricPoint } from "@/components/MetricsTrend";
 import { SiteLogsPanel } from "@/components/SiteLogsPanel";
+import { SiteBenchActions, ChangePlanForm, type PlanOption } from "./site-actions";
 
 export const dynamic = "force-dynamic";
 
@@ -71,15 +72,16 @@ function QuotaRow({ label, dim }: { label: string; dim: QuotaDimension }) {
 export default async function SiteDetailPage({ params }: { params: Promise<{ site: string }> }) {
   const { site } = await params;
 
-  const { doc, history, usage, quota, logFiles } = await withAuth(async (sid) => {
-    const [doc, history, usage, quota, logFiles] = await Promise.all([
+  const { doc, history, usage, quota, logFiles, plans } = await withAuth(async (sid) => {
+    const [doc, history, usage, quota, logFiles, plans] = await Promise.all([
       callMethod<SiteDoc>("frappe.client.get", { doctype: "Space Site", name: site }, sid),
       callMethod<MetricPoint[]>("space_cloud.api.v2.space.metrics", { site, limit: 48 }, sid),
       callMethod<SiteUsage>("space_cloud.api.v4.space.site_usage", { site }, sid),
       callMethod<SiteQuota>("space_cloud.api.v4.space.site_quota", { site }, sid),
       callMethod<string[]>("space_cloud.api.v4.space.site_log_files", { site }, sid),
+      getList<PlanOption>("Space Plan", { fields: ["name", "title"], filters: { is_active: 1 }, order_by: "sort_order asc" }, sid),
     ]);
-    return { doc, history, usage, quota, logFiles };
+    return { doc, history, usage, quota, logFiles, plans };
   });
 
   const latest = history[0];
@@ -175,6 +177,26 @@ export default async function SiteDetailPage({ params }: { params: Promise<{ sit
           </CardHeader>
           <CardContent>
             <SiteLogsPanel site={site} files={logFiles} />
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="mb-6 grid gap-6 lg:grid-cols-2">
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">Plan</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ChangePlanForm site={site} currentPlan={doc.plan} plans={plans} />
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">Apps &amp; bench actions</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <SiteBenchActions site={site} />
           </CardContent>
         </Card>
       </div>

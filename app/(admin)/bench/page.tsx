@@ -1,7 +1,20 @@
+import { getList } from "@/lib/frappe-admin";
+import { withAuth } from "@/lib/require-sid";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { GetAppForm, ListBenchAppsForm, InstallAppForm, UninstallAppForm, MigrateSiteForm } from "./bench-actions";
+import { GetAppForm, ListBenchAppsForm, SiteAppActions, type SiteOption } from "./bench-actions";
 
-export default function BenchManagerPage() {
+export const dynamic = "force-dynamic";
+
+export default async function BenchManagerPage() {
+  const sites = await withAuth((sid) =>
+    getList<{ name: string; domain: string; site_name: string }>(
+      "Space Site",
+      { fields: ["name", "domain", "site_name"], filters: { status: ["!=", "Deleted"] }, order_by: "domain asc" },
+      sid,
+    ),
+  );
+  const siteOptions: SiteOption[] = sites.map((s) => ({ name: s.name, label: s.domain || s.site_name || s.name }));
+
   return (
     <div>
       <h1 className="mb-1 text-2xl font-semibold text-foreground">Bench Manager</h1>
@@ -28,30 +41,12 @@ export default function BenchManagerPage() {
         </CardContent>
       </Card>
 
-      <Card className="mb-8">
-        <CardHeader>
-          <CardTitle className="text-base">Install app on site</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <InstallAppForm />
-        </CardContent>
-      </Card>
-
-      <Card className="mb-8">
-        <CardHeader>
-          <CardTitle className="text-base">Uninstall app from site</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <UninstallAppForm />
-        </CardContent>
-      </Card>
-
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Migrate site</CardTitle>
+          <CardTitle className="text-base">Site app actions</CardTitle>
         </CardHeader>
         <CardContent>
-          <MigrateSiteForm />
+          <SiteAppActions sites={siteOptions} />
         </CardContent>
       </Card>
     </div>
