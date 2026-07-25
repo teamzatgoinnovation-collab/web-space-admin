@@ -19,7 +19,7 @@ type AuditRow = {
   creation: string;
 };
 
-export type TokenRow = { name: string; token_name: string; customer: string; scopes: string; is_active: number; creation: string };
+export type TokenRow = { name: string; token_name: string; customer: string; scopes: string; status: string; creation: string };
 type WebhookRow = { name: string; title: string; url: string; events: string; is_active: number; direction: string };
 
 export default async function SecurityPage() {
@@ -28,7 +28,7 @@ export default async function SecurityPage() {
       callMethod<AuditRow[]>("space_cloud.api.v2.space.search_audit", { limit: 100 }, sid),
       getList<TokenRow>(
         "Space API Token",
-        { fields: ["name", "token_name", "customer", "scopes", "is_active", "creation"], order_by: "creation desc" },
+        { fields: ["name", "token_name", "customer", "scopes", "status", "creation"], order_by: "creation desc" },
         sid,
       ),
       getList<WebhookRow>(
@@ -109,10 +109,10 @@ export default async function SecurityPage() {
                       <TableCell className="text-muted-foreground">{t.customer || "—"}</TableCell>
                       <TableCell className="font-mono text-xs text-muted-foreground">{t.scopes}</TableCell>
                       <TableCell>
-                        <Badge variant={t.is_active ? "default" : "secondary"}>{t.is_active ? "Active" : "Revoked"}</Badge>
+                        <Badge variant={t.status === "Active" ? "default" : "secondary"}>{t.status}</Badge>
                       </TableCell>
                       <TableCell className="text-right">
-                        <RevokeTokenButton name={t.name} disabled={!t.is_active} />
+                        <RevokeTokenButton name={t.name} disabled={t.status !== "Active"} />
                       </TableCell>
                     </TableRow>
                   ))}
