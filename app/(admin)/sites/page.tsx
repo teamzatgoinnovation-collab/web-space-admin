@@ -1,5 +1,8 @@
 import { getList } from "@/lib/frappe-admin";
 import { withAuth } from "@/lib/require-sid";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
 
 export const dynamic = "force-dynamic";
 
@@ -15,10 +18,10 @@ type SiteRow = {
   storage_used_mb: number;
 };
 
-const STATUS_TONE: Record<string, string> = {
-  Active: "var(--adm-green)",
-  Failed: "var(--adm-red)",
-  Suspended: "var(--adm-yellow)",
+const STATUS_VARIANT: Record<string, "default" | "destructive" | "secondary"> = {
+  Active: "default",
+  Failed: "destructive",
+  Suspended: "secondary",
 };
 
 export default async function SitesPage() {
@@ -37,46 +40,48 @@ export default async function SitesPage() {
 
   return (
     <div>
-      <h1 className="mb-1 text-2xl font-semibold text-white">Sites</h1>
-      <p className="mb-6 text-sm text-[var(--adm-muted)]">{sites.length} site(s) across the fleet.</p>
+      <h1 className="mb-1 text-2xl font-semibold text-foreground">Sites</h1>
+      <p className="mb-6 text-sm text-muted-foreground">{sites.length} site(s) across the fleet.</p>
 
-      <div className="overflow-x-auto rounded-xl border border-[var(--adm-border)]">
-        <table className="w-full min-w-[720px] text-left text-sm">
-          <thead className="bg-[var(--adm-surface2)] text-xs uppercase tracking-wide text-[var(--adm-muted)]">
-            <tr>
-              <th className="px-4 py-3">Domain</th>
-              <th className="px-4 py-3">Status</th>
-              <th className="px-4 py-3">SSL</th>
-              <th className="px-4 py-3">Customer</th>
-              <th className="px-4 py-3">Server</th>
-              <th className="px-4 py-3">Plan</th>
-              <th className="px-4 py-3">Storage</th>
-            </tr>
-          </thead>
-          <tbody>
-            {sites.map((s) => (
-              <tr key={s.name} className="border-t border-[var(--adm-border)] bg-[var(--adm-surface)]">
-                <td className="px-4 py-3 text-white">{s.domain || s.site_name}</td>
-                <td className="px-4 py-3" style={{ color: STATUS_TONE[s.status] || "var(--adm-muted)" }}>
-                  {s.status}
-                </td>
-                <td className="px-4 py-3 text-[var(--adm-muted)]">{s.ssl_status || "—"}</td>
-                <td className="px-4 py-3 text-[var(--adm-muted)]">{s.customer || "—"}</td>
-                <td className="px-4 py-3 text-[var(--adm-muted)]">{s.server || "—"}</td>
-                <td className="px-4 py-3 text-[var(--adm-muted)]">{s.plan || "—"}</td>
-                <td className="px-4 py-3 text-[var(--adm-muted)]">{s.storage_used_mb ?? 0} MB</td>
-              </tr>
-            ))}
-            {!sites.length ? (
-              <tr>
-                <td colSpan={7} className="px-4 py-6 text-center text-[var(--adm-muted)]">
-                  No sites yet.
-                </td>
-              </tr>
-            ) : null}
-          </tbody>
-        </table>
-      </div>
+      <Card>
+        <CardContent className="overflow-x-auto p-0">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Domain</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>SSL</TableHead>
+                <TableHead>Customer</TableHead>
+                <TableHead>Server</TableHead>
+                <TableHead>Plan</TableHead>
+                <TableHead>Storage</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {sites.map((s) => (
+                <TableRow key={s.name}>
+                  <TableCell className="font-medium text-foreground">{s.domain || s.site_name}</TableCell>
+                  <TableCell>
+                    <Badge variant={STATUS_VARIANT[s.status] || "secondary"}>{s.status}</Badge>
+                  </TableCell>
+                  <TableCell className="text-muted-foreground">{s.ssl_status || "—"}</TableCell>
+                  <TableCell className="text-muted-foreground">{s.customer || "—"}</TableCell>
+                  <TableCell className="text-muted-foreground">{s.server || "—"}</TableCell>
+                  <TableCell className="text-muted-foreground">{s.plan || "—"}</TableCell>
+                  <TableCell className="text-muted-foreground">{s.storage_used_mb ?? 0} MB</TableCell>
+                </TableRow>
+              ))}
+              {!sites.length ? (
+                <TableRow>
+                  <TableCell colSpan={7} className="py-6 text-center text-muted-foreground">
+                    No sites yet.
+                  </TableCell>
+                </TableRow>
+              ) : null}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
     </div>
   );
 }

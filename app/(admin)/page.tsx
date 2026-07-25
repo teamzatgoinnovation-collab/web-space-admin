@@ -1,5 +1,7 @@
 import { callMethod } from "@/lib/frappe-admin";
 import { withAuth } from "@/lib/require-sid";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { cn } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
@@ -22,15 +24,21 @@ type DashboardSummary = {
 
 function Stat({ label, value, tone }: { label: string; value: string | number; tone?: "red" | "green" }) {
   return (
-    <div className="rounded-xl border border-[var(--adm-border)] bg-[var(--adm-surface)] p-4">
-      <p className="text-xs text-[var(--adm-muted)]">{label}</p>
-      <p
-        className="mt-1 text-2xl font-semibold"
-        style={{ color: tone === "red" ? "var(--adm-red)" : tone === "green" ? "var(--adm-green)" : "#fff" }}
-      >
-        {value}
-      </p>
-    </div>
+    <Card>
+      <CardContent className="p-4">
+        <p className="text-xs text-muted-foreground">{label}</p>
+        <p
+          className={cn(
+            "mt-1 text-2xl font-semibold",
+            tone === "red" && "text-destructive",
+            tone === "green" && "text-emerald-500",
+            !tone && "text-foreground",
+          )}
+        >
+          {value}
+        </p>
+      </CardContent>
+    </Card>
   );
 }
 
@@ -41,8 +49,8 @@ export default async function DashboardPage() {
 
   return (
     <div>
-      <h1 className="mb-1 text-2xl font-semibold text-white">Fleet Dashboard</h1>
-      <p className="mb-6 text-sm text-[var(--adm-muted)]">Live snapshot across every region and server.</p>
+      <h1 className="mb-1 text-2xl font-semibold text-foreground">Fleet Dashboard</h1>
+      <p className="mb-6 text-sm text-muted-foreground">Live snapshot across every region and server.</p>
 
       <div className="mb-8 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
         <Stat label="Customers" value={data.customers} />
@@ -63,23 +71,25 @@ export default async function DashboardPage() {
         />
       </div>
 
-      <section>
-        <h2 className="mb-3 text-lg font-medium text-white">Server health</h2>
-        <ul className="space-y-2 text-sm">
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg">Server health</CardTitle>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-2">
           {data.server_health.map((s) => (
-            <li
+            <div
               key={s.name}
-              className="flex items-center justify-between rounded-lg border border-[var(--adm-border)] bg-[var(--adm-surface)] px-4 py-2"
+              className="flex items-center justify-between rounded-lg border border-border bg-card px-4 py-2 text-sm"
             >
               <span>{s.name}</span>
-              <span className="text-[var(--adm-muted)]">
+              <span className="text-muted-foreground">
                 {s.status} · {s.health}
               </span>
-            </li>
+            </div>
           ))}
-          {!data.server_health.length ? <li className="text-[var(--adm-muted)]">No servers yet.</li> : null}
-        </ul>
-      </section>
+          {!data.server_health.length ? <p className="text-sm text-muted-foreground">No servers yet.</p> : null}
+        </CardContent>
+      </Card>
     </div>
   );
 }

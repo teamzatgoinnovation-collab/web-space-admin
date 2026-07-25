@@ -1,5 +1,8 @@
 import { callMethod } from "@/lib/frappe-admin";
 import { withAuth } from "@/lib/require-sid";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
 
 export const dynamic = "force-dynamic";
 
@@ -15,12 +18,12 @@ type Alert = {
   opened_at: string;
 };
 
-const SEVERITY_TONE: Record<string, string> = {
-  Critical: "var(--adm-red)",
-  High: "var(--adm-red)",
-  Warning: "var(--adm-yellow)",
-  Medium: "var(--adm-yellow)",
-  Low: "var(--adm-muted)",
+const SEVERITY_VARIANT: Record<string, "default" | "destructive" | "secondary"> = {
+  Critical: "destructive",
+  High: "destructive",
+  Warning: "secondary",
+  Medium: "secondary",
+  Low: "secondary",
 };
 
 export default async function MonitoringPage() {
@@ -30,44 +33,46 @@ export default async function MonitoringPage() {
 
   return (
     <div>
-      <h1 className="mb-1 text-2xl font-semibold text-white">Monitoring</h1>
-      <p className="mb-6 text-sm text-[var(--adm-muted)]">{alerts.length} open alert(s).</p>
+      <h1 className="mb-1 text-2xl font-semibold text-foreground">Monitoring</h1>
+      <p className="mb-6 text-sm text-muted-foreground">{alerts.length} open alert(s).</p>
 
-      <div className="overflow-x-auto rounded-xl border border-[var(--adm-border)]">
-        <table className="w-full min-w-[720px] text-left text-sm">
-          <thead className="bg-[var(--adm-surface2)] text-xs uppercase tracking-wide text-[var(--adm-muted)]">
-            <tr>
-              <th className="px-4 py-3">Alert</th>
-              <th className="px-4 py-3">Severity</th>
-              <th className="px-4 py-3">Metric</th>
-              <th className="px-4 py-3">Server / Cluster</th>
-              <th className="px-4 py-3">Opened</th>
-            </tr>
-          </thead>
-          <tbody>
-            {alerts.map((a) => (
-              <tr key={a.name} className="border-t border-[var(--adm-border)] bg-[var(--adm-surface)]">
-                <td className="px-4 py-3 text-white">{a.title}</td>
-                <td className="px-4 py-3" style={{ color: SEVERITY_TONE[a.severity] || "var(--adm-muted)" }}>
-                  {a.severity}
-                </td>
-                <td className="px-4 py-3 text-[var(--adm-muted)]">
-                  {a.metric} {a.value != null ? `= ${a.value}` : ""}
-                </td>
-                <td className="px-4 py-3 text-[var(--adm-muted)]">{a.server || a.cluster || "—"}</td>
-                <td className="px-4 py-3 text-[var(--adm-muted)]">{a.opened_at}</td>
-              </tr>
-            ))}
-            {!alerts.length ? (
-              <tr>
-                <td colSpan={5} className="px-4 py-6 text-center text-[var(--adm-muted)]">
-                  No open alerts. 🎉
-                </td>
-              </tr>
-            ) : null}
-          </tbody>
-        </table>
-      </div>
+      <Card>
+        <CardContent className="overflow-x-auto p-0">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Alert</TableHead>
+                <TableHead>Severity</TableHead>
+                <TableHead>Metric</TableHead>
+                <TableHead>Server / Cluster</TableHead>
+                <TableHead>Opened</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {alerts.map((a) => (
+                <TableRow key={a.name}>
+                  <TableCell className="font-medium text-foreground">{a.title}</TableCell>
+                  <TableCell>
+                    <Badge variant={SEVERITY_VARIANT[a.severity] || "secondary"}>{a.severity}</Badge>
+                  </TableCell>
+                  <TableCell className="text-muted-foreground">
+                    {a.metric} {a.value != null ? `= ${a.value}` : ""}
+                  </TableCell>
+                  <TableCell className="text-muted-foreground">{a.server || a.cluster || "—"}</TableCell>
+                  <TableCell className="text-muted-foreground">{a.opened_at}</TableCell>
+                </TableRow>
+              ))}
+              {!alerts.length ? (
+                <TableRow>
+                  <TableCell colSpan={5} className="py-6 text-center text-muted-foreground">
+                    No open alerts. 🎉
+                  </TableCell>
+                </TableRow>
+              ) : null}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
     </div>
   );
 }

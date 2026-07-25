@@ -2,6 +2,9 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+import { Settings } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 const LINKS = [
   { href: "/", label: "Dashboard" },
@@ -24,51 +27,38 @@ export function AdminNav() {
   }
 
   return (
-    <header
-      style={{ height: "var(--adm-nav-h)" }}
-      className="fixed inset-x-0 top-0 z-50 border-b border-[var(--adm-border)] bg-[var(--adm-bg)]"
-    >
+    <header className="fixed inset-x-0 top-0 z-50 h-16 border-b border-border bg-background">
       <div className="mx-auto flex h-full max-w-6xl items-center justify-between px-4 sm:px-6">
         <Link href="/" className="flex items-center gap-2.5">
-          <span
-            className="flex h-8 w-8 items-center justify-center rounded-lg text-white"
-            style={{ background: "var(--adm-accent)" }}
-          >
-            ⚙
+          <span className="flex size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+            <Settings className="size-4" />
           </span>
           <span>
-            <span className="block text-[0.62rem] font-bold uppercase tracking-[0.12em] text-[var(--adm-accent)]">
+            <span className="block text-[0.62rem] font-bold uppercase tracking-[0.12em] text-primary">
               ZatGo Space
             </span>
-            <span className="text-base font-extrabold text-white">Admin Console</span>
+            <span className="text-base font-extrabold text-foreground">Admin Console</span>
           </span>
         </Link>
         <nav className="hidden items-center gap-1 sm:flex">
-          {LINKS.map((link) => {
-            const active = isActive(link.href);
-            return (
-              <Link
-                key={link.href}
-                href={link.href}
-                className="rounded-lg px-3 py-1.5 text-sm font-medium"
-                style={{
-                  color: active ? "#fff" : "var(--adm-muted)",
-                  background: active ? "var(--adm-surface2)" : "transparent",
-                  border: active ? "1px solid var(--adm-border)" : "1px solid transparent",
-                }}
-              >
-                {link.label}
-              </Link>
-            );
-          })}
+          {LINKS.map((link) => (
+            <Link
+              key={link.href}
+              href={link.href}
+              className={cn(
+                "rounded-lg px-3 py-1.5 text-sm font-medium transition-colors",
+                isActive(link.href)
+                  ? "bg-secondary text-foreground"
+                  : "text-muted-foreground hover:text-foreground",
+              )}
+            >
+              {link.label}
+            </Link>
+          ))}
         </nav>
-        <button
-          type="button"
-          onClick={logout}
-          className="rounded-lg border border-[var(--adm-border)] bg-[var(--adm-surface2)] px-3 py-1.5 text-sm font-medium text-[var(--adm-muted)] hover:text-white"
-        >
+        <Button variant="secondary" size="sm" onClick={logout}>
           Sign out
-        </button>
+        </Button>
       </div>
     </header>
   );

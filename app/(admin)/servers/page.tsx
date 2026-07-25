@@ -1,5 +1,8 @@
 import { callMethod } from "@/lib/frappe-admin";
 import { withAuth } from "@/lib/require-sid";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 export const dynamic = "force-dynamic";
 
@@ -39,82 +42,90 @@ export default async function ServersPage() {
 
   return (
     <div>
-      <h1 className="mb-1 text-2xl font-semibold text-white">Servers &amp; Infrastructure</h1>
-      <p className="mb-6 text-sm text-[var(--adm-muted)]">
+      <h1 className="mb-1 text-2xl font-semibold text-foreground">Servers &amp; Infrastructure</h1>
+      <p className="mb-6 text-sm text-muted-foreground">
         {data.servers.length} server(s) · {data.clusters.length} cluster(s) · {data.regions.length} region(s) ·{" "}
-        <span style={{ color: data.alerts_open > 0 ? "var(--adm-red)" : "var(--adm-muted)" }}>
+        <span className={data.alerts_open > 0 ? "text-destructive" : "text-muted-foreground"}>
           {data.alerts_open} open alert(s)
         </span>
       </p>
 
-      <section className="mb-10">
-        <h2 className="mb-3 text-lg font-medium text-white">Servers</h2>
-        <div className="overflow-x-auto rounded-xl border border-[var(--adm-border)]">
-          <table className="w-full min-w-[720px] text-left text-sm">
-            <thead className="bg-[var(--adm-surface2)] text-xs uppercase tracking-wide text-[var(--adm-muted)]">
-              <tr>
-                <th className="px-4 py-3">Server</th>
-                <th className="px-4 py-3">Status</th>
-                <th className="px-4 py-3">CPU</th>
-                <th className="px-4 py-3">RAM</th>
-                <th className="px-4 py-3">Disk</th>
-                <th className="px-4 py-3">Active sites</th>
-              </tr>
-            </thead>
-            <tbody>
+      <Card className="mb-8">
+        <CardHeader>
+          <CardTitle className="text-lg">Servers</CardTitle>
+        </CardHeader>
+        <CardContent className="overflow-x-auto p-0">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Server</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>CPU</TableHead>
+                <TableHead>RAM</TableHead>
+                <TableHead>Disk</TableHead>
+                <TableHead>Active sites</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
               {data.servers.map((s) => (
-                <tr key={s.name} className="border-t border-[var(--adm-border)] bg-[var(--adm-surface)]">
-                  <td className="px-4 py-3 text-white">{s.title || s.name}</td>
-                  <td className="px-4 py-3" style={{ color: s.health === "Healthy" ? "var(--adm-green)" : "var(--adm-red)" }}>
-                    {s.status} / {s.health}
-                  </td>
-                  <td className="px-4 py-3 text-[var(--adm-muted)]">{s.cpu_used_percent ?? 0}%</td>
-                  <td className="px-4 py-3 text-[var(--adm-muted)]">{pct(s.ram_used_mb, s.ram_mb)}</td>
-                  <td className="px-4 py-3 text-[var(--adm-muted)]">{pct(s.disk_used_mb, s.disk_mb)}</td>
-                  <td className="px-4 py-3 text-[var(--adm-muted)]">{s.active_sites ?? 0}</td>
-                </tr>
+                <TableRow key={s.name}>
+                  <TableCell className="font-medium text-foreground">{s.title || s.name}</TableCell>
+                  <TableCell>
+                    <Badge variant={s.health === "Healthy" ? "default" : "destructive"}>
+                      {s.status} / {s.health}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="text-muted-foreground">{s.cpu_used_percent ?? 0}%</TableCell>
+                  <TableCell className="text-muted-foreground">{pct(s.ram_used_mb, s.ram_mb)}</TableCell>
+                  <TableCell className="text-muted-foreground">{pct(s.disk_used_mb, s.disk_mb)}</TableCell>
+                  <TableCell className="text-muted-foreground">{s.active_sites ?? 0}</TableCell>
+                </TableRow>
               ))}
               {!data.servers.length ? (
-                <tr>
-                  <td colSpan={6} className="px-4 py-6 text-center text-[var(--adm-muted)]">
+                <TableRow>
+                  <TableCell colSpan={6} className="py-6 text-center text-muted-foreground">
                     No servers registered.
-                  </td>
-                </tr>
+                  </TableCell>
+                </TableRow>
               ) : null}
-            </tbody>
-          </table>
-        </div>
-      </section>
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
 
-      <section className="mb-10">
-        <h2 className="mb-3 text-lg font-medium text-white">Clusters</h2>
-        <ul className="space-y-2 text-sm">
+      <Card className="mb-8">
+        <CardHeader>
+          <CardTitle className="text-lg">Clusters</CardTitle>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-2">
           {data.clusters.map((c) => (
-            <li
+            <div
               key={c.name}
-              className="flex items-center justify-between rounded-lg border border-[var(--adm-border)] bg-[var(--adm-surface)] px-4 py-2"
+              className="flex items-center justify-between rounded-lg border border-border bg-background px-4 py-2 text-sm"
             >
-              <span className="text-white">{c.title || c.cluster_name}</span>
-              <span className="text-[var(--adm-muted)]">
+              <span className="text-foreground">{c.title || c.cluster_name}</span>
+              <span className="text-muted-foreground">
                 {c.region} · {c.status}/{c.health} · {c.active_sites}/{c.max_sites} sites
               </span>
-            </li>
+            </div>
           ))}
-          {!data.clusters.length ? <li className="text-[var(--adm-muted)]">No clusters yet.</li> : null}
-        </ul>
-      </section>
+          {!data.clusters.length ? <p className="text-sm text-muted-foreground">No clusters yet.</p> : null}
+        </CardContent>
+      </Card>
 
-      <section>
-        <h2 className="mb-3 text-lg font-medium text-white">Regions</h2>
-        <ul className="space-y-2 text-sm">
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg">Regions</CardTitle>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-2">
           {data.regions.map((r) => (
-            <li key={r.name} className="text-[var(--adm-muted)]">
+            <p key={r.name} className="text-sm text-muted-foreground">
               {r.title} {r.country ? `· ${r.country}` : ""}
-            </li>
+            </p>
           ))}
-          {!data.regions.length ? <li className="text-[var(--adm-muted)]">No regions yet.</li> : null}
-        </ul>
-      </section>
+          {!data.regions.length ? <p className="text-sm text-muted-foreground">No regions yet.</p> : null}
+        </CardContent>
+      </Card>
     </div>
   );
 }
