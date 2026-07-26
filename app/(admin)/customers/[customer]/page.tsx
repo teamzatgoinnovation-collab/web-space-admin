@@ -45,7 +45,10 @@ const STATUS_VARIANT: Record<string, "default" | "destructive" | "secondary"> = 
 };
 
 export default async function CustomerDetailPage({ params }: { params: Promise<{ customer: string }> }) {
-  const { customer } = await params;
+  const { customer: rawCustomer } = await params;
+  // Customer names can contain spaces (autoname: field:customer_name) — the route
+  // segment sometimes arrives still percent-encoded, so decode defensively.
+  const customer = decodeURIComponent(rawCustomer);
 
   const { doc, sites, subscriptions } = await withAuth(async (sid) => {
     const [doc, sites, subscriptions] = await Promise.all([
