@@ -45,7 +45,7 @@ function LoginForm() {
         <span className="text-xs font-bold uppercase tracking-[0.12em] text-primary">ZatGo Space</span>
         <h1 className="mt-1 text-2xl font-semibold text-foreground">Admin Console</h1>
         <p className="mt-2 text-sm text-muted-foreground">
-          Sign in with your space.zatgo.online admin account.
+          Sign in with your spaceapi.zatgo.online admin account.
         </p>
       </div>
       <Card>

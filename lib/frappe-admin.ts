@@ -1,7 +1,7 @@
 /**
  * Server-only client for space-admin-web.
  *
- * Admins authenticate with their own Frappe account on space.zatgo.online
+ * Admins authenticate with their own Frappe account on the Space Frappe control plane
  * (System Manager / Space Admin / Space Operator / Readonly Auditor role).
  * This module logs them in against Frappe directly, then forwards their
  * Frappe `sid` on every subsequent call — there is no separate admin
