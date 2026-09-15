@@ -1,19 +1,74 @@
-import { getList } from "@/lib/frappe-admin";
+import { callMethod, getList } from "@/lib/frappe-admin";
 import { withAuth } from "@/lib/require-sid";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { GetAppForm, ListBenchAppsForm, SiteAppActions, type SiteOption } from "./bench-actions";
+import {
+  GetAppForm,
+  ListBenchAppsForm,
+  SiteAppActions,
+  type GithubAppsResult,
+  type ServerAppsMap,
+  type ServerOption,
+  type SiteOption,
+} from "./bench-actions";
 
 export const dynamic = "force-dynamic";
 
+const EMPTY_GITHUB_APPS: GithubAppsResult = {
+  configured: false,
+  apps: [],
+  error: "Could not reach the control plane to list GitHub apps.",
+};
+
 export default async function BenchManagerPage() {
-  const sites = await withAuth((sid) =>
-    getList<{ name: string; domain: string; site_name: string }>(
-      "Space Site",
-      { fields: ["name", "domain", "site_name"], filters: { status: ["!=", "Deleted"] }, order_by: "domain asc" },
-      sid,
-    ),
-  );
-  const siteOptions: SiteOption[] = sites.map((s) => ({ name: s.name, label: s.domain || s.site_name || s.name }));
+  const { siteOptions, serverOptions, benchAppsByServer, githubApps } = await withAuth(async (sid) => {
+    const [sites, servers] = await Promise.all([
+      getList<{ name: string; domain: string; site_name: string; server: string }>(
+        "Space Site",
+        { fields: ["name", "domain", "site_name", "server"], filters: { status: ["!=", "Deleted"] }, order_by: "domain asc" },
+        sid,
+      ),
+      getList<{ name: string; title: string }>(
+        "Space Server",
+        { fields: ["name", "title"], filters: { status: "Active" }, order_by: "name asc" },
+        sid,
+      ),
+    ]);
+
+    const siteOptions: SiteOption[] = sites.map((s) => ({
+      name: s.name,
+      label: s.domain || s.site_name || s.name,
+      server: s.server,
+    }));
+    const serverOptions: ServerOption[] = servers.map((s) => ({ name: s.name, label: s.title || s.name }));
+
+    // Each server's bench-apps fetch is independent and must not take the whole
+    // page down if one server is unreachable — unlike the sites/servers fetch
+    // above, this hits the target servers themselves (via the Agent/subprocess
+    // path), a new failure surface this page didn't have before.
+    const benchAppsByServer: ServerAppsMap = {};
+    await Promise.all(
+      serverOptions.map(async (s) => {
+        try {
+          benchAppsByServer[s.name] = await callMethod<string[]>(
+            "space_cloud.api.v4.space.bench_list_apps",
+            { server: s.name },
+            sid,
+          );
+        } catch {
+          benchAppsByServer[s.name] = [];
+        }
+      }),
+    );
+
+    let githubApps: GithubAppsResult;
+    try {
+      githubApps = await callMethod<GithubAppsResult>("space_cloud.api.v4.space.bench_github_apps", {}, sid);
+    } catch {
+      githubApps = EMPTY_GITHUB_APPS;
+    }
+
+    return { siteOptions, serverOptions, benchAppsByServer, githubApps };
+  });
 
   return (
     <div>
@@ -28,7 +83,7 @@ export default async function BenchManagerPage() {
           <CardTitle className="text-base">Fetch app from git (bench get-app)</CardTitle>
         </CardHeader>
         <CardContent>
-          <GetAppForm />
+          <GetAppForm servers={serverOptions} />
         </CardContent>
       </Card>
 
@@ -37,7 +92,7 @@ export default async function BenchManagerPage() {
           <CardTitle className="text-base">Bench apps</CardTitle>
         </CardHeader>
         <CardContent>
-          <ListBenchAppsForm />
+          <ListBenchAppsForm servers={serverOptions} />
         </CardContent>
       </Card>
 
@@ -46,7 +101,7 @@ export default async function BenchManagerPage() {
           <CardTitle className="text-base">Site app actions</CardTitle>
         </CardHeader>
         <CardContent>
-          <SiteAppActions sites={siteOptions} />
+          <SiteAppActions sites={siteOptions} benchAppsByServer={benchAppsByServer} githubApps={githubApps} />
         </CardContent>
       </Card>
     </div>
