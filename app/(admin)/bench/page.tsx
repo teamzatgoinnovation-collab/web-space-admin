@@ -5,7 +5,6 @@ import {
   GetAppForm,
   ListBenchAppsForm,
   SiteAppActions,
-  type GithubAppsResult,
   type ServerAppsMap,
   type ServerOption,
   type SiteOption,
@@ -13,14 +12,8 @@ import {
 
 export const dynamic = "force-dynamic";
 
-const EMPTY_GITHUB_APPS: GithubAppsResult = {
-  configured: false,
-  apps: [],
-  error: "Could not reach the control plane to list GitHub apps.",
-};
-
 export default async function BenchManagerPage() {
-  const { siteOptions, serverOptions, benchAppsByServer, githubApps } = await withAuth(async (sid) => {
+  const { siteOptions, serverOptions, benchAppsByServer } = await withAuth(async (sid) => {
     const [sites, servers] = await Promise.all([
       getList<{ name: string; domain: string; site_name: string; server: string }>(
         "Space Site",
@@ -60,14 +53,7 @@ export default async function BenchManagerPage() {
       }),
     );
 
-    let githubApps: GithubAppsResult;
-    try {
-      githubApps = await callMethod<GithubAppsResult>("space_cloud.api.v4.space.bench_github_apps", {}, sid);
-    } catch {
-      githubApps = EMPTY_GITHUB_APPS;
-    }
-
-    return { siteOptions, serverOptions, benchAppsByServer, githubApps };
+    return { siteOptions, serverOptions, benchAppsByServer };
   });
 
   return (
@@ -101,7 +87,7 @@ export default async function BenchManagerPage() {
           <CardTitle className="text-base">Site app actions</CardTitle>
         </CardHeader>
         <CardContent>
-          <SiteAppActions sites={siteOptions} benchAppsByServer={benchAppsByServer} githubApps={githubApps} />
+          <SiteAppActions sites={siteOptions} benchAppsByServer={benchAppsByServer} />
         </CardContent>
       </Card>
     </div>

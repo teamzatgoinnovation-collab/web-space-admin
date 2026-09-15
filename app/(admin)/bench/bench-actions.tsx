@@ -6,27 +6,11 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import {
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectLabel,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useAction } from "@/lib/use-action";
 
 export type SiteOption = { name: string; label: string; server: string };
 export type ServerOption = { name: string; label: string };
-export type GithubApp = {
-  package_name: string;
-  repo_name: string;
-  clone_url: string | null;
-  default_branch: string;
-  html_url: string | null;
-};
-export type GithubAppsResult = { configured: boolean; apps: GithubApp[]; error?: string | null };
 export type ServerAppsMap = Record<string, string[]>;
 type AppVersionRow = { app_package: string; version: string; git_head: string };
 
@@ -145,11 +129,9 @@ export function ListBenchAppsForm({ servers }: { servers: ServerOption[] }) {
 export function SiteAppActions({
   sites,
   benchAppsByServer,
-  githubApps,
 }: {
   sites: SiteOption[];
   benchAppsByServer: ServerAppsMap;
-  githubApps: GithubAppsResult;
 }) {
   const [site, setSite] = useState(sites[0]?.name || "");
   const currentSite = useMemo(() => sites.find((s) => s.name === site), [sites, site]);
@@ -164,27 +146,21 @@ export function SiteAppActions({
   const opsAction = useAction();
 
   const [installPackage, setInstallPackage] = useState("");
-  const [installRepo, setInstallRepo] = useState("");
-  const [installBranch, setInstallBranch] = useState("main");
   const [uninstallPackage, setUninstallPackage] = useState("");
   const [installedApps, setInstalledApps] = useState<string[] | null>(null);
   const [versionRows, setVersionRows] = useState<AppVersionRow[] | null>(null);
   const [rebuildApp, setRebuildApp] = useState("");
 
   const benchApps = benchAppsByServer[currentSite?.server ?? ""] ?? [];
-  const githubByPkg = useMemo(
-    () => Object.fromEntries(githubApps.apps.map((a) => [a.package_name, a])),
-    [githubApps],
-  );
-  const githubOnly = useMemo(
-    () => githubApps.apps.filter((a) => !benchApps.includes(a.package_name)),
-    [githubApps, benchApps],
+  // Only offer apps that are on the bench but not already installed on this site —
+  // an app already installed here has nothing left to "install".
+  const remainingBenchApps = useMemo(
+    () => benchApps.filter((a) => !(installedApps || []).includes(a)),
+    [benchApps, installedApps],
   );
 
   useEffect(() => {
     setInstallPackage("");
-    setInstallRepo("");
-    setInstallBranch("main");
     setUninstallPackage("");
     setInstalledApps(null);
     setVersionRows(null);
@@ -212,19 +188,6 @@ export function SiteAppActions({
     // installedAppsAction/versionsAction are stable (useCallback), only `site` should retrigger this
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [site]);
-
-  function handleInstallPick(value: string | null) {
-    const pkg = value || "";
-    setInstallPackage(pkg);
-    const gh = githubByPkg[pkg];
-    if (gh) {
-      setInstallRepo(gh.clone_url || "");
-      setInstallBranch(gh.default_branch || "main");
-    } else {
-      setInstallRepo("");
-      setInstallBranch("main");
-    }
-  }
 
   async function refreshVersions() {
     if (!site) return;
@@ -256,43 +219,51 @@ export function SiteAppActions({
         {!sites.length ? <p className="mt-1 text-xs text-muted-foreground">No sites yet.</p> : null}
       </div>
 
+      {/* Installed apps on this site — shown plainly, not just buried in the Uninstall picker */}
+      <div className="border-t border-border pt-4">
+        <label className="mb-2 block text-xs text-muted-foreground">Apps installed on this site</label>
+        {installedApps === null ? (
+          <p className="text-sm text-muted-foreground">{site ? "Loading…" : "Select a site."}</p>
+        ) : installedApps.length ? (
+          <div className="flex flex-wrap gap-1.5">
+            {installedApps.map((a) => (
+              <Badge key={a} variant="secondary">
+                {a}
+              </Badge>
+            ))}
+          </div>
+        ) : (
+          <p className="text-sm text-muted-foreground">No apps installed on this site yet.</p>
+        )}
+        {installedAppsAction.error && <p className="mt-1 text-sm text-destructive">{installedAppsAction.error}</p>}
+      </div>
+
       {/* Install */}
       <div className="flex flex-wrap items-end gap-3 border-t border-border pt-4">
         <div className="min-w-56 flex-1">
-          <label className="mb-1.5 block text-xs text-muted-foreground">App to install</label>
-          <Select value={installPackage} onValueChange={handleInstallPick}>
+          <label className="mb-1.5 block text-xs text-muted-foreground">App to install (on this bench, not yet on this site)</label>
+          <Select value={installPackage} onValueChange={(v) => setInstallPackage(v || "")}>
             <SelectTrigger className="w-full">
-              <SelectValue placeholder="Select an app" />
+              <SelectValue
+                placeholder={remainingBenchApps.length ? "Select an app" : "No remaining bench apps to install"}
+              />
             </SelectTrigger>
             <SelectContent>
-              {benchApps.length ? (
-                <SelectGroup>
-                  <SelectLabel>On this bench</SelectLabel>
-                  {benchApps.map((a) => (
-                    <SelectItem key={a} value={a}>
-                      {a}
-                    </SelectItem>
-                  ))}
-                </SelectGroup>
-              ) : null}
-              {githubApps.configured && githubOnly.length ? (
-                <SelectGroup>
-                  <SelectLabel>Available on GitHub</SelectLabel>
-                  {githubOnly.map((a) => (
-                    <SelectItem key={a.package_name} value={a.package_name}>
-                      {a.package_name}
-                    </SelectItem>
-                  ))}
-                </SelectGroup>
-              ) : null}
+              {remainingBenchApps.map((a) => (
+                <SelectItem key={a} value={a}>
+                  {a}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
-          {!githubApps.configured && githubApps.error ? (
-            <p className="mt-1 text-xs text-muted-foreground">{githubApps.error}</p>
-          ) : null}
-          {installRepo ? (
+          {!remainingBenchApps.length && benchApps.length ? (
             <p className="mt-1 text-xs text-muted-foreground">
-              Will run bench get-app {installRepo} (branch {installBranch}) before installing.
+              Every app on this bench is already installed on this site.
+            </p>
+          ) : null}
+          {!benchApps.length ? (
+            <p className="mt-1 text-xs text-muted-foreground">
+              Nothing on this server&apos;s bench yet — use &quot;Fetch app from git&quot; above first.
             </p>
           ) : null}
         </div>
@@ -302,8 +273,8 @@ export function SiteAppActions({
             installAction.run("install", "space_cloud.api.v4.space.bench_install_app", {
               site,
               app_package: installPackage,
-              repo: installRepo || null,
-              branch: installBranch || "main",
+              repo: null,
+              branch: "main",
             })
           }
         >
