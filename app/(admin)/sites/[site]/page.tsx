@@ -1,3 +1,4 @@
+import { LifecycleControls, type LifecycleEvent, type LifecycleView } from "./lifecycle-actions";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { callMethod, getList } from "@/lib/frappe-admin";
@@ -72,16 +73,19 @@ function QuotaRow({ label, dim }: { label: string; dim: QuotaDimension }) {
 export default async function SiteDetailPage({ params }: { params: Promise<{ site: string }> }) {
   const { site } = await params;
 
-  const { doc, history, usage, quota, logFiles, plans } = await withAuth(async (sid) => {
-    const [doc, history, usage, quota, logFiles, plans] = await Promise.all([
+  const { doc, history, usage, quota, logFiles, plans, lifecycle, lifecycleEvents, excluded } = await withAuth(async (sid) => {
+    const [doc, history, usage, quota, logFiles, plans, lifecycle, lifecycleEvents, exclusions] = await Promise.all([
       callMethod<SiteDoc>("frappe.client.get", { doctype: "Space Site", name: site }, sid),
       callMethod<MetricPoint[]>("space_cloud.api.v2.space.metrics", { site, limit: 48 }, sid),
       callMethod<SiteUsage>("space_cloud.api.v4.space.site_usage", { site }, sid),
       callMethod<SiteQuota>("space_cloud.api.v4.space.site_quota", { site }, sid),
       callMethod<string[]>("space_cloud.api.v4.space.site_log_files", { site }, sid),
       getList<PlanOption>("Space Plan", { fields: ["name", "title"], filters: { is_active: 1 }, order_by: "sort_order asc" }, sid),
+      callMethod<LifecycleView>("space.api.lifecycle.get_lifecycle", { site }, sid).catch(() => null),
+      callMethod<LifecycleEvent[]>("space.api.lifecycle.list_events", { site, limit: 30 }, sid).catch(() => [] as LifecycleEvent[]),
+      callMethod<{ site: string }[]>("space.api.lifecycle.list_exclusions", {}, sid).catch(() => [] as { site: string }[]),
     ]);
-    return { doc, history, usage, quota, logFiles, plans };
+    return { doc, history, usage, quota, logFiles, plans, lifecycle, lifecycleEvents, excluded: exclusions.some((e) => e.site === site) };
   });
 
   const latest = history[0];
@@ -180,6 +184,15 @@ export default async function SiteDetailPage({ params }: { params: Promise<{ sit
           </CardContent>
         </Card>
       </div>
+
+      <Card className="mb-6">
+        <CardHeader>
+          <CardTitle className="text-lg">Trial, subscription &amp; deletion</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <LifecycleControls site={site} view={lifecycle} excluded={excluded} events={lifecycleEvents} />
+        </CardContent>
+      </Card>
 
       <div className="mb-6 grid gap-6 lg:grid-cols-2">
         <Card>

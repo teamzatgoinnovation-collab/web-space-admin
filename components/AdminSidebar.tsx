@@ -52,6 +52,7 @@ const GROUPS: NavGroup[] = [
       { href: "/marketplace", label: "Marketplace", icon: Store },
       { href: "/support", label: "Support", icon: LifeBuoy },
       { href: "/licenses", label: "Licenses", icon: KeyRound },
+      { href: "/exclusions", label: "Deletion & audit", icon: ShieldCheck },
     ],
   },
   {
