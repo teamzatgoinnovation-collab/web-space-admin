@@ -17,6 +17,11 @@ export type LifecycleView = {
   deletion_scheduled_at: string | null;
   deletion_hold: boolean;
   monthly_price: number | null;
+  yearly_price?: number | null;
+  billing_period?: "Monthly" | "Yearly";
+  period_price?: number | null;
+  /** A real company site Space only tracks: neutral Active badge, no lifecycle controls. */
+  protected?: boolean;
   read_only: boolean;
 };
 
@@ -43,6 +48,19 @@ export function LifecycleControls({
   const [confirm, setConfirm] = useState("");
   const [deleteDays, setDeleteDays] = useState("7");
   const [msg, setMsg] = useState<string | null>(null);
+  const [period, setPeriod] = useState<"Monthly" | "Yearly">(view?.billing_period === "Yearly" ? "Yearly" : "Monthly");
+
+  if (view?.protected) {
+    return (
+      <div className="flex flex-col gap-2 text-sm">
+        <div className="flex items-center gap-2"><Badge variant="secondary">ACTIVE</Badge><Badge variant="outline">protected</Badge></div>
+        <p className="text-muted-foreground">
+          A real company site that Space only tracks (Space Settings &gt; Protected Domains). It shows a neutral Active badge,
+          has no trial and is never restricted or deleted, so there are no lifecycle controls.
+        </p>
+      </div>
+    );
+  }
 
   if (!view || !view.lifecycle_status) {
     return <p className="text-sm text-muted-foreground">This site has no lifecycle state yet (it is set when provisioning succeeds).</p>;
@@ -75,7 +93,9 @@ export function LifecycleControls({
           ["Trial ends (UTC)", day(view.trial_ends_at)],
           ["Days left", view.remaining_days === null ? "-" : String(view.remaining_days)],
           ["Paid until (UTC)", day(view.paid_until)],
+          ["Billing period", view.billing_period === "Yearly" ? "Yearly" : "Monthly"],
           ["Monthly price", view.monthly_price ? `${view.monthly_price} SAR` : "-"],
+          ["Yearly price", view.yearly_price ? `${view.yearly_price} SAR` : "not set"],
           ["Last activity (UTC)", day(view.last_activity_at)],
           ["Inactive for", `${Math.floor(view.inactive_days)} days`],
           ["Scheduled deletion (UTC)", day(view.deletion_scheduled_at)],
@@ -93,6 +113,24 @@ export function LifecycleControls({
       </div>
       {msg ? <p className="text-sm text-destructive">{msg}</p> : null}
       {error ? <p className="text-sm text-destructive">{error}</p> : null}
+
+      <div className="flex flex-wrap items-end gap-2">
+        <select
+          className="h-8 rounded-md border border-input bg-background px-2 text-sm"
+          value={period}
+          onChange={(e) => setPeriod(e.target.value === "Yearly" ? "Yearly" : "Monthly")}
+          aria-label="Billing period"
+        >
+          <option value="Monthly">Monthly</option>
+          <option value="Yearly">Yearly</option>
+        </select>
+        <Button size="sm" variant="secondary" disabled={busyKey === "period"} onClick={() => call("period", "set_billing_period", { period })}>
+          Set billing period
+        </Button>
+        <span className="basis-full text-xs text-muted-foreground">
+          Applies from the next payment. Yearly charges the plan&apos;s yearly price and credits 12 months.
+        </span>
+      </div>
 
       <div className="flex flex-wrap items-end gap-2">
         <Input className="w-20" value={days} onChange={(e) => setDays(e.target.value)} aria-label="Days to extend" />
